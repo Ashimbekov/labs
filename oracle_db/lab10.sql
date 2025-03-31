@@ -141,3 +141,159 @@ GROUP BY Owner.ono, Owner.fname, Owner.lname
 HAVING COUNT(DISTINCT Property_for_rent.bno) > 1 AND COUNT(DISTINCT Property_for_rent.pno) > 2;
 
 select * from OWNER;
+
+INSERT INTO Owner (ono, fname, lname, address, tel_no) VALUES
+(6, 'Нурадулет', 'Ашимбеков', 'Астана, ул. Республика 333', '7171717171');
+
+INSERT INTO Property_for_rent (pno, street, city, type, rooms, rent, ono, sno, bno) VALUES (6, 'Ленина 10', 'Минск', 'f', 3, 100000, 6, 10, 1);
+INSERT INTO Property_for_rent (pno, street, city, type, rooms, rent, ono, sno, bno) VALUES (7, 'Пушкина 5', 'Минск', 'h', 4, 150000, 6, 15, 2);
+INSERT INTO Property_for_rent (pno, street, city, type, rooms, rent, ono, sno, bno) VALUES (8, 'Гоголя 8', 'Минск', 'f', 2, 80000, 6, 20, 3);
+
+-- 6 вариант
+
+SELECT street || ', ' || city AS Адрес
+FROM Property_for_rent
+WHERE type = 'f' AND rent <= 300000; 
+
+SELECT COUNT(Staff.sno) AS Количество
+FROM Staff
+JOIN Branch ON Staff.bno = Branch.bno
+WHERE Branch.city = 'Минск' AND Staff.position = 'Менеджер';
+
+SELECT type AS Тип, COUNT(pno) AS Количество
+FROM Property_for_rent
+GROUP BY type;
+
+SELECT Staff.sno, Staff.fname, Staff.lname
+FROM Staff
+JOIN Property_for_rent ON Staff.sno = Property_for_rent.sno
+GROUP BY Staff.sno, Staff.fname, Staff.lname
+HAVING SUM(CASE WHEN Property_for_rent.type = 'h' THEN 1 ELSE 0 END) > 
+       SUM(CASE WHEN Property_for_rent.type = 'f' THEN 1 ELSE 0 END);
+
+
+-- 7 вариант
+SELECT lname || ', тел.: ' || tel_no AS Арендатор_и_Телефон
+FROM Renter
+WHERE pref_type = 'h';
+
+SELECT DISTINCT Owner.tel_no
+FROM Owner
+JOIN Property_for_rent ON Owner.ono = Property_for_rent.ono
+JOIN Viewing ON Property_for_rent.pno = Viewing.pno
+WHERE EXTRACT(YEAR FROM Viewing.date_o) = 2019 AND EXTRACT(MONTH FROM Viewing.date_o) = 9;
+
+UPDATE Viewing
+SET DATE_O = TO_DATE('2019-09-01', 'YYYY-MM-DD')
+WHERE RNO = 1 AND PNO = 1;
+
+SELECT Branch.city, 
+       MIN(CASE WHEN Property_for_rent.type = 'f' THEN rent END) AS Дешевая_квартира,
+       MIN(CASE WHEN Property_for_rent.type = 'h' THEN rent END) AS Дешевый_дом
+FROM Property_for_rent
+JOIN Branch ON Property_for_rent.bno = Branch.bno
+GROUP BY Branch.city;
+
+SELECT Branch.city, 
+       AVG(Staff.salary) AS Средняя_зарплата,
+       COUNT(Property_for_rent.pno) AS Количество_объектов
+FROM Staff
+JOIN Branch ON Staff.bno = Branch.bno
+LEFT JOIN Property_for_rent ON Staff.sno = Property_for_rent.sno
+GROUP BY Branch.city;
+
+
+-- 8 вариант
+SELECT UPPER(fname) || ' ' || UPPER(lname) AS Женщина_менеджер
+FROM Staff
+WHERE sex = 'female' AND position = 'Менеджер';
+
+SELECT Staff.fname, Staff.lname, Staff.salary
+FROM Staff
+JOIN Branch ON Staff.bno = Branch.bno
+WHERE Branch.city = 'Астана' AND Staff.salary = (
+    SELECT MAX(salary)
+    FROM Staff
+    JOIN Branch ON Staff.bno = Branch.bno
+    WHERE Branch.city = 'Астана'
+);
+
+SELECT TO_CHAR(Viewing.date_o, 'Day') AS День_недели, COUNT(*) AS Количество
+FROM Viewing
+GROUP BY TO_CHAR(Viewing.date_o, 'Day');
+
+SELECT Branch.bno, Branch.city, AVG(Property_for_rent.rent) AS Средняя_стоимость
+FROM Property_for_rent
+JOIN Branch ON Property_for_rent.bno = Branch.bno
+WHERE Property_for_rent.rooms = 2 AND Property_for_rent.type = 'f'
+GROUP BY Branch.bno, Branch.city
+ORDER BY Средняя_стоимость DESC
+FETCH FIRST 1 ROW ONLY;
+
+
+-- 9 вариант
+
+SELECT COUNT(DISTINCT Viewing.rno) AS Количество_арендаторов,
+       COUNT(DISTINCT Viewing.pno) AS Количество_объектов
+FROM Viewing
+WHERE Viewing.date_o >= ADD_MONTHS(SYSDATE, -12);
+
+SELECT DISTINCT Staff.fname, Staff.lname
+FROM Staff
+JOIN Property_for_rent ON Staff.sno = Property_for_rent.sno
+JOIN Branch ON Property_for_rent.bno = Branch.bno
+WHERE Branch.city = 'Астана';
+
+SELECT Branch.city, SUM(Property_for_rent.rent) AS Суммарная_стоимость
+FROM Property_for_rent
+JOIN Branch ON Property_for_rent.bno = Branch.bno
+WHERE Branch.city IN ('Астана', 'Алматы')
+GROUP BY Branch.city;
+
+
+SELECT Owner.ono, Owner.fname, Owner.lname, COUNT(Property_for_rent.pno) AS Количество_квартир
+FROM Owner
+JOIN Property_for_rent ON Owner.ono = Property_for_rent.ono
+JOIN Branch ON Property_for_rent.bno = Branch.bno
+WHERE Branch.city != 'Астана' AND Property_for_rent.type = 'f'
+GROUP BY Owner.ono, Owner.fname, Owner.lname
+HAVING COUNT(Property_for_rent.pno) > (
+    SELECT MAX(COUNT(pno))
+    FROM Property_for_rent
+    JOIN Branch ON Property_for_rent.bno = Branch.bno
+    WHERE Branch.city = 'Астана' AND Property_for_rent.type = 'f'
+    GROUP BY Property_for_rent.ono
+);
+
+
+-- 10 вариант
+SELECT RPAD(lname, 20, '.') AS Фамилия, LPAD(tel_no, 15, '.') AS Телефон
+FROM Renter
+WHERE tel_no LIKE '%5%' OR tel_no LIKE '%7%';
+
+SELECT COUNT(DISTINCT Property_for_rent.ono) AS Количество_собственников
+FROM Property_for_rent
+JOIN Viewing ON Property_for_rent.pno = Viewing.pno
+WHERE Viewing.comment_o IS NOT NULL;
+
+SELECT Branch.bno, Branch.city, COUNT(Staff.sno) AS Количество_сотрудников
+FROM Branch
+JOIN Staff ON Branch.bno = Staff.bno
+GROUP BY Branch.bno, Branch.city
+HAVING COUNT(Staff.sno) >= 3;
+
+
+SELECT Staff.fname, Staff.lname, Branch.city
+FROM Staff
+JOIN Branch ON Staff.bno = Branch.bno
+LEFT JOIN Property_for_rent ON Branch.bno = Property_for_rent.bno
+WHERE Property_for_rent.pno IS NULL;
+
+
+INSERT INTO Branch (bno, street, city, tel_no) VALUES
+(7, 'Мирляндия', 'Астана', '717171717');
+
+INSERT INTO Staff (sno, fname, lname, address, tel_no, position, sex, dob, salary, bno) VALUES
+(40, 'Камиль', 'Айран', 'Астана, Малиновка 34', '400404040404', 'Агент', 'male', TO_DATE('1995-06-21', 'YYYY-MM-DD'), 300000, 7);
+
+
